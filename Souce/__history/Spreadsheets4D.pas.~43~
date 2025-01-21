@@ -117,8 +117,8 @@ procedure DataSetForBrOfficeSpreadsheet(ADataSet: TDataSet; ATitle: String);
 var
   LOpenDesktop, LCalc, LSheets, LSheet: Variant;
   LConnect, LOpenOffice: Variant;
-  I: Integer; // Coluna
-  j: Integer; // Linha
+  LColum: Integer; // Coluna
+  LRow: Integer; // Linha
   LNumSheet: Integer;
   LFieldValue: string;
 
@@ -139,107 +139,101 @@ begin
   // Cria linha de cabeçalho
   LSheet.getCellByPosition(0, 0).setString(ATitle);
 
-  j := 1;
-  I := 0;
-  for I := 0 to Pred(ADataSet.FieldCount) do
-    if ADataSet.Fields[I].DataType <> ftDataSet then
-      LSheet.getCellByPosition(I, j).setString(ADataSet.Fields[I].FieldName);
+  LRow := 1;
+  LColum := 0;
+  for LColum := 0 to Pred(ADataSet.FieldCount) do
+    if ADataSet.Fields[LColum].DataType <> ftDataSet then
+      LSheet.getCellByPosition(LColum, LRow).setString(ADataSet.Fields[LColum].FieldName);
 
   // Preenche a planilha
-  j := 2;
+  LRow := 2;
   ADataSet.First;
   while not ADataSet.Eof do
   begin
-    I := 0;
-    while I <= ADataSet.FieldCount - 1 do
+    LColum := 0;
+    while LColum <= ADataSet.FieldCount - 1 do
     begin
-      if ADataSet.Fields[I].DataType in [ftDate, ftTime, ftDateTime] then
+      if ADataSet.Fields[LColum].DataType in [ftDate, ftTime, ftDateTime] then
       begin
-        if ((DateToStr(ADataSet.Fields[I].Value) <> Null) and (DateToStr(ADataSet.Fields[I].Value) <> '')) then
+        if ((DateToStr(ADataSet.Fields[LColum].Value) <> Null) and (DateToStr(ADataSet.Fields[LColum].Value) <> '')) then
         begin
-          LSheet.getCellByPosition(I, j).setString(ADataSet.Fields[I].Value);
-          I := I + 1;
+          LSheet.getCellByPosition(LColum, LRow).setString(ADataSet.Fields[LColum].Value);
+          LColum := LColum + 1;
         end;
       end
-      else if ADataSet.Fields[I].DataType in [ftSmallint, ftInteger, ftLargeint, ftString, ftFloat] then
+      else if ADataSet.Fields[LColum].DataType in [ftSmallint, ftInteger, ftLargeint, ftString, ftFloat] then
       begin
-        { if ((IntToStr(aDataset.Fields[i].Value) Null) and (IntToStr(aDataset.Fields[i].Value) )) then
-          LSheet.getCellByPosition(i,j).SetValue(aDataset.Fie0A LSheets := LCalc.LSheets; }
         LSheet := LSheets.getByIndex(0);
 
         // Cria linha de cabeçalho
-        I := 0;
-        while I <= ADataSet.FieldCount - 1 do
+        LColum := 0;
+        while LColum <= ADataSet.FieldCount - 1 do
         begin
-          if (ADataSet.Fields[I].FieldName <> 'ICONE') then
-            if not(ADataSet.Fields[I].DataType in [ftDataSet]) then
-              LSheet.getCellByPosition(I, j).setString(ADataSet.Fields[I].FieldName);
-          I := I + 1;
+          if (ADataSet.Fields[LColum].FieldName <> 'ICONE') then
+            if not(ADataSet.Fields[LColum].DataType in [ftDataSet]) then
+              LSheet.getCellByPosition(LColum, LRow).setString(ADataSet.Fields[LColum].FieldName);
+          LColum := LColum + 1;
         end;
 
         // Preenche a planilha
-        j := 2;
+        LRow := 2;
         ADataSet.First;
         while not ADataSet.Eof do
         begin
-          if j = 65536 then
+          if LRow = 65536 then
           begin
             inc(LNumSheet);
             LSheet := LSheets.getByIndex(LNumSheet);
-            j := 0;
+            LRow := 0;
           end;
-          I := 0;
+          LColum := 0;
 
           // preenche linhas
-          while I <= ADataSet.FieldCount - 1 do
+          while LColum <= ADataSet.FieldCount - 1 do
           begin
-            if (ADataSet.Fields[I].FieldName <> 'ICONE') then
+            if (ADataSet.Fields[LColum].FieldName <> 'ICONE') then
             begin
-              if not(ADataSet.Fields[I].DataType in [ftDataSet]) then
+              if not(ADataSet.Fields[LColum].DataType in [ftDataSet]) then
               begin
-                if (ADataSet.Fields[I].AsString <> EmptyStr) then
+                if (ADataSet.Fields[LColum].AsString <> EmptyStr) then
                 begin
-                  if ADataSet.Fields[I].DataType in [ftDate, ftTime, ftDateTime, ftTimeStamp] then
+                  if ADataSet.Fields[LColum].DataType in [ftDate, ftTime, ftDateTime, ftTimeStamp] then
                   begin
-                    // if ((DateToStr(aDataset.Fields[i].Value) Null) and (DateToStr(aDataset.Fields[i].Value) )) then
-                    LSheet.getCellByPosition(I, j).setString(ADataSet.Fields[I].AsString);
+                    LSheet.getCellByPosition(LColum, LRow).setString(ADataSet.Fields[LColum].AsString);
                   end
-                  else if ADataSet.Fields[I].DataType in [ftSmallint, ftInteger, ftLargeint] then
+                  else if ADataSet.Fields[LColum].DataType in [ftSmallint, ftInteger, ftLargeint] then
                   begin
-                    // if ((IntToStr(aDataset.Fields[i].Value) Null) and (IntToStr(aDataset.Fields[i].Value) )) then
-                    LSheet.getCellByPosition(I, j).SetValue(ADataSet.Fields[I].AsInteger);
+                    LSheet.getCellByPosition(LColum, LRow).SetValue(ADataSet.Fields[LColum].AsInteger);
                   end
-                  else if ADataSet.Fields[I].DataType in [ftFloat, ftCurrency, ftBCD, ftFMTBcd] then
+                  else if ADataSet.Fields[LColum].DataType in [ftFloat, ftCurrency, ftBCD, ftFMTBcd] then
                   begin
-                    // if ((FloatToStr(aDataset.Fields[i].Value) Null) and (FloatToStr(aDataset.Fields[i].Value) )) then
-                    LSheet.getCellByPosition(I, j).SetValue(ADataSet.Fields[I].AsFloat);
+                    LSheet.getCellByPosition(LColum, LRow).SetValue(ADataSet.Fields[LColum].AsFloat);
                   end
                   else
                   begin
-                    if ((ADataSet.Fields[I].Value <> Null) and (ADataSet.Fields[I].Value <> '')) then
+                    if ((ADataSet.Fields[LColum].Value <> Null) and (ADataSet.Fields[LColum].Value <> '')) then
                     begin
-                      LFieldValue := ADataSet.Fields[I].Value;
-                      LSheet.getCellByPosition(I, j).setString(LFieldValue);
+                      LFieldValue := ADataSet.Fields[LColum].Value;
+                      LSheet.getCellByPosition(LColum, LRow).setString(LFieldValue);
                     end;
                   end;
                 end
                 else
-                  LSheet.getCellByPosition(I, j).setString('');
+                  LSheet.getCellByPosition(LColum, LRow).setString('');
               end;
             end;
-            I := I + 1;
+            LColum := LColum + 1;
           end;
           ADataSet.Next;
-          j := j + 1;
+          LRow := LRow + 1;
         end;
       end
       else
-        I := I + 1;
+        LColum := LColum + 1;
     end;
   end;
   // Desconecta o LOpenOffice
   LOpenOffice := Unassigned;
-  // Application.MessageBox('Planilha gerada com sucesso.', 'Atenção', MB_OK + MB_ICONINFORMATION);
 end;
 
 end.

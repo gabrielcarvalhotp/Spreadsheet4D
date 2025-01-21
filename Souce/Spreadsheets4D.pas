@@ -133,7 +133,7 @@ begin
   // Inicia o LCalc
   LOpenDesktop := LOpenOffice.CreateInstance('com.sun.star.frame.Desktop');
   LCalc := LOpenDesktop.LoadComponentFromURL('private:factory/scalc', '_blank', 0, VarArrayCreate([0, -1], varVariant));
-  LSheets := LCalc.LSheets;
+  LSheets := LCalc.Sheets;
   LSheet := LSheets.getByIndex(0);
 
   // Cria linha de cabeçalho
