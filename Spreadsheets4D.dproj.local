@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+  <Transactions>
+    <Transaction>2025/01/20 21:11:58.255,=rtl.dcp</Transaction>
+    <Transaction>2025/01/20 21:12:55.144,D:\Desenvolvimento\Delphi\Spreadsheets4D\Spreadsheets4D.dproj=C:\Users\GABRIEL CARVALHO\Documents\Embarcadero\Studio\Projects\Package1.dproj</Transaction>
+    <Transaction>2025/01/20 21:13:03.832,=D:\Desenvolvimento\Delphi\Spreadsheets4D\Unit1.pas</Transaction>
+    <Transaction>2025/01/20 21:13:29.630,D:\Desenvolvimento\Delphi\Spreadsheets4D\Souce\Spreadsheets4D.pas=D:\Desenvolvimento\Delphi\Spreadsheets4D\Unit1.pas</Transaction>
+    <Transaction>2025/01/20 21:29:04.614,=dbrtl.dcp</Transaction>
+    <Transaction>2025/01/20 21:29:04.633,=fmx.dcp</Transaction>
+  </Transactions>
+</BorlandProject>

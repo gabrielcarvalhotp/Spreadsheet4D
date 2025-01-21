@@ -1,0 +1,244 @@
+unit Spreadsheets4D;
+
+{$I Spreadsheets4D.inc}
+
+interface
+
+uses
+  System.SysUtils,
+  System.Classes,
+  System.Variants,
+  Data.DB,
+{$IFDEF HAS_FMX}
+  FMX.Types,
+  FMX.Graphics,
+  System.UITypes,
+{$ELSE}
+  Vcl.ExtCtrls,
+  Vcl.Graphics,
+{$ENDIF}
+  System.StrUtils;
+
+procedure DataSetForExcelSpreadsheet(ADataSet: TDataSet; ANameSizeColum: array of string; ASizeColum: array of Integer; AMergeCells, ASpreadsheetTitle: string);
+procedure DataSetForBrOfficeSpreadsheet(ADataSet: TDataSet; ATitle: String);
+
+implementation
+
+{$IFDEF HAS_FMX}
+{$ELSE}
+{$ENDIF}
+
+uses
+  System.Win.ComObj;
+
+procedure DataSetForExcelSpreadsheet(ADataSet: TDataSet; ANameSizeColum: array of string; ASizeColum: array of Integer; AMergeCells, ASpreadsheetTitle: string);
+var
+  LSpreadsheet: Variant;
+  LFieldValue: string;
+begin
+  LSpreadsheet := CreateOleObject('Excel.Application');
+  LSpreadsheet.WorkBooks.add(1);
+  LSpreadsheet.caption := 'Exportando dados do dbGrid para o Excel';
+  LSpreadsheet.visible := true;
+  LSpreadsheet.Range[AMergeCells].Mergecells := true;
+  LSpreadsheet.Cells[1, 1] := ASpreadsheetTitle;
+  ADataSet.First;
+  for var LLine := 0 to ADataSet.RecordCount - 1 do
+  begin
+    for var LColum := 1 to ADataSet.FieldCount do
+    begin
+      if ADataSet.Fields.Fields[LColum - 1].visible then
+      begin
+        if ADataSet.Fields.Fields[LColum - 1].DataType in [ftFloat, ftCurrency, ftBCD, ftFMTBcd] then
+        begin
+{$IFDEF HAS_FMX}
+          LSpreadsheet.Cells[LLine + 3, LColum].Borders.Color := TAlphaColors.Black;
+{$ELSE}
+          LSpreadsheet.Cells[LLine + 3, LColum].Borders.Color := clBlack;
+{$ENDIF}
+          LSpreadsheet.Cells[LLine + 3, LColum].Font.Size := 8;
+          LSpreadsheet.Cells[LLine + 3, LColum].numberFormat := '#.#0,00_);(#.#0,00)';
+          LSpreadsheet.Cells[LLine + 3, LColum] := ADataSet.Fields.Fields[LColum - 1].AsFloat;
+        end
+        else if ADataSet.Fields.Fields[LColum - 1].DataType in [ftDate, ftDateTime, ftTimeStamp] then
+        begin
+{$IFDEF HAS_FMX}
+          LSpreadsheet.Cells[LLine + 3, LColum].Borders.Color := TAlphaColors.Black;
+{$ELSE}
+          LSpreadsheet.Cells[LLine + 3, LColum].Borders.Color := clBlack;
+{$ENDIF}
+          LSpreadsheet.Cells[LLine + 3, LColum].Font.Size := 8;
+          if ADataSet.Fields.Fields[LColum - 1].DataType in [ftTimeStamp] then
+            LSpreadsheet.Cells[LLine + 3, LColum].numberFormat := 'DD/MM/AAAA'
+          else
+            LSpreadsheet.Cells[LLine + 3, LColum].numberFormat := 'DD/MM/AA';
+          if ADataSet.Fields.Fields[LColum - 1].AsDateTime > 0 then
+            LSpreadsheet.Cells[LLine + 3, LColum] := ADataSet.Fields.Fields[LColum - 1].AsDateTime;
+        end
+        else
+        begin
+{$IFDEF HAS_FMX}
+          LSpreadsheet.Cells[LLine + 3, LColum].Borders.Color := TAlphaColors.Black;
+{$ELSE}
+          LSpreadsheet.Cells[LLine + 3, LColum].Borders.Color := clBlack;
+{$ENDIF}
+          LSpreadsheet.Cells[LLine + 3, LColum].Font.Size := 8;
+          LSpreadsheet.Cells[LLine + 3, LColum] := ADataSet.Fields.Fields[LColum - 1].AsString;
+        end;
+      end;
+    end;
+    ADataSet.Next;
+  end;
+  for var LColum := 1 to ADataSet.FieldCount do
+  begin
+    if ADataSet.Fields.Fields[LColum - 1].visible then
+    begin
+      LFieldValue := ADataSet.Fields[LColum - 1].DisplayLabel;
+      LSpreadsheet.Cells[2, LColum] := LFieldValue;
+      LSpreadsheet.Cells[2, LColum].Font.Bold := true;
+{$IFDEF HAS_FMX}
+      LSpreadsheet.Cells[2, LColum].Font.Color := TAlphaColors.Black;
+      LSpreadsheet.Cells[2, LColum].Borders.Color := TAlphaColors.Black;
+      LSpreadsheet.Cells[2, LColum].Interior.Color := TAlphaColors.Gray;
+{$ELSE}
+      LSpreadsheet.Cells[2, LColum].Font.Color := clBlack;
+      LSpreadsheet.Cells[2, LColum].Borders.Color := clBlack;
+      LSpreadsheet.Cells[2, LColum].Interior.Color := clGray;
+{$ENDIF}
+    end;
+  end;
+  LSpreadsheet.columns.Autofit;
+  for var I := 0 to Length(ANameSizeColum) - 1 do
+    LSpreadsheet.Range[ANameSizeColum[I]].ColumnWidth := ASizeColum[I];
+  LSpreadsheet := Unassigned;
+end;
+
+procedure DataSetForBrOfficeSpreadsheet(ADataSet: TDataSet; ATitle: String);
+var
+  LOpenDesktop, LCalc, LSheets, LSheet: Variant;
+  LConnect, LOpenOffice: Variant;
+//  I: Integer; // Coluna
+//  j: Integer; // Linha
+  LNumSheet: Integer;
+  LFieldValue: string;
+
+begin
+  ADataSet.Open;
+  ADataSet.Last;
+  // Cria o link OLE com o LOpenOffice
+  if VarIsEmpty(LOpenOffice) then
+    LOpenOffice := CreateOleObject('com.sun.star.ServiceManager');
+
+  LConnect := not(VarIsEmpty(LOpenOffice) or VarIsNull(LOpenOffice));
+  // Inicia o LCalc
+  LOpenDesktop := LOpenOffice.CreateInstance('com.sun.star.frame.Desktop');
+  LCalc := LOpenDesktop.LoadComponentFromURL('private:factory/scalc', '_blank', 0, VarArrayCreate([0, -1], varVariant));
+  LSheets := LCalc.LSheets;
+  LSheet := LSheets.getByIndex(0);
+
+  // Cria linha de cabeçalho
+  LSheet.getCellByPosition(0, 0).setString(ATitle);
+
+//  j := 1;
+//  I := 0;
+  for var I := 0 to Pred(ADataSet.FieldCount) do
+    if ADataSet.Fields[I].DataType <> ftDataSet then
+      LSheet.getCellByPosition(I, 1).SetString(ADataSet.Fields[I].FieldName);
+
+  // Preenche a planilha
+  j := 2;
+  ADataSet.First;
+  while not ADataSet.Eof do
+  begin
+    I := 0;
+    while I <= ADataSet.FieldCount - 1 do
+    begin
+      if ADataSet.Fields[I].DataType in [ftDate, ftTime, ftDateTime] then
+      begin
+        if ((DateToStr(ADataSet.Fields[I].Value) <> Null) and (DateToStr(ADataSet.Fields[I].Value) <> '')) then
+        begin
+          LSheet.getCellByPosition(I, j).setString(ADataSet.Fields[I].Value);
+          I := I + 1;
+        end;
+      end
+      else if ADataSet.Fields[I].DataType in [ftSmallint, ftInteger, ftLargeint, ftString, ftFloat] then
+      begin
+        { if ((IntToStr(aDataset.Fields[i].Value) Null) and (IntToStr(aDataset.Fields[i].Value) )) then
+          LSheet.getCellByPosition(i,j).SetValue(aDataset.Fie0A LSheets := LCalc.LSheets; }
+        LSheet := LSheets.getByIndex(0);
+
+        // Cria linha de cabeçalho
+        I := 0;
+        while I <= ADataSet.FieldCount - 1 do
+        begin
+          if (ADataSet.Fields[I].FieldName <> 'ICONE') then
+            if not(ADataSet.Fields[I].DataType in [ftDataSet]) then
+              LSheet.getCellByPosition(I, j).setString(ADataSet.Fields[I].FieldName);
+          I := I + 1;
+        end;
+
+        // Preenche a planilha
+        j := 2;
+        ADataSet.First;
+        while not ADataSet.Eof do
+        begin
+          if j = 65536 then
+          begin
+            inc(LNumSheet);
+            LSheet := LSheets.getByIndex(LNumSheet);
+            j := 0;
+          end;
+          I := 0;
+
+          // preenche linhas
+          while I <= ADataSet.FieldCount - 1 do
+          begin
+            if (ADataSet.Fields[I].FieldName <> 'ICONE') then
+            begin
+              if not(ADataSet.Fields[I].DataType in [ftDataSet]) then
+              begin
+                if (ADataSet.Fields[I].AsString <> EmptyStr) then
+                begin
+                  if ADataSet.Fields[I].DataType in [ftDate, ftTime, ftDateTime, ftTimeStamp] then
+                  begin
+                    // if ((DateToStr(aDataset.Fields[i].Value) Null) and (DateToStr(aDataset.Fields[i].Value) )) then
+                    LSheet.getCellByPosition(I, j).setString(ADataSet.Fields[I].AsString);
+                  end
+                  else if ADataSet.Fields[I].DataType in [ftSmallint, ftInteger, ftLargeint] then
+                  begin
+                    // if ((IntToStr(aDataset.Fields[i].Value) Null) and (IntToStr(aDataset.Fields[i].Value) )) then
+                    LSheet.getCellByPosition(I, j).SetValue(ADataSet.Fields[I].AsInteger);
+                  end
+                  else if ADataSet.Fields[I].DataType in [ftFloat, ftCurrency, ftBCD, ftFMTBcd] then
+                  begin
+                    // if ((FloatToStr(aDataset.Fields[i].Value) Null) and (FloatToStr(aDataset.Fields[i].Value) )) then
+                    LSheet.getCellByPosition(I, j).SetValue(ADataSet.Fields[I].AsFloat);
+                  end
+                  else
+                  begin
+                    if ((ADataSet.Fields[I].Value <> Null) and (ADataSet.Fields[I].Value <> '')) then
+                    begin
+                      LFieldValue := ADataSet.Fields[I].Value;
+                      LSheet.getCellByPosition(I, j).setString(LFieldValue);
+                    end;
+                  end;
+                end
+                else
+                  LSheet.getCellByPosition(I, j).setString('');
+              end;
+            end;
+            I := I + 1;
+          end;
+          ADataSet.Next;
+          j := j + 1;
+        end;
+      end
+      else
+        I := I + 1;
+    end;
+  end;
+  // Desconecta o LOpenOffice
+  LOpenOffice := Unassigned;
+end;
+
+end.
